@@ -52,6 +52,8 @@ qboolean stdin_active = true;
 // Console logfile
 extern FILE	*logfile;
 
+/* ================================================================ */
+
 void
 Sys_Quit(void)
 {

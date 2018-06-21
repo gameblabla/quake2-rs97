@@ -32,13 +32,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
-
 #ifndef APIENTRY
 #define APIENTRY
 #endif
@@ -93,23 +86,5 @@
 #define GL_OPERAND7_ALPHA_EXT 0x859F
 #endif
 
-// =======================================================================
-
-/*
- * This is responsible for setting up our QGL extension pointers
- */
-qboolean QGL_Init ( void );
-
-/*
- * Unloads the specified DLL then nulls out all the proc pointers.
- */
-void QGL_Shutdown ( void );
-
-/* GL extensions */
-extern void ( APIENTRY *qglPointParameterfARB ) ( GLenum param, GLfloat value );
-extern void ( APIENTRY *qglPointParameterfvARB ) ( GLenum param,
-		const GLfloat *value );
-extern void ( APIENTRY *qglColorTableEXT ) ( GLenum, GLenum, GLsizei, GLenum,
-		GLenum, const GLvoid * );
 
 #endif

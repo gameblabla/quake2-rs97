@@ -3,3 +3,13 @@
 *.mk
 *.user
 *.d
+baseq2/
+baseq2_/
+baseq2/*.pak
+*.o
+*.elf
+core
+log.txt
+console_history.txt
+quakensp
+*.tns

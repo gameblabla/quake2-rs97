@@ -87,17 +87,17 @@ main(int argc, char **argv)
 
 	/* Prevent running Quake II as root. Only very mad
 	   minded or stupid people even think about it. :) */
-	if (getuid() == 0)
+	/*if (getuid() == 0)
 	{
 		printf("Quake II shouldn't be run as root! Backing out to save your ass. If\n");
 		printf("you really know what you're doing, edit src/unix/main.c and remove\n");
 		printf("this check. But don't complain if Quake II eats your dog afterwards!\n");
 
 		return 1;
-	}
+	}*/
 
 	// Enforce the real UID to prevent setuid crap
-	if (getuid() != geteuid())
+	/*if (getuid() != geteuid())
 	{
 		printf("The effective UID is not the real UID! Your binary is probably marked\n");
 		printf("'setuid'. That is not good idea, please fix it :) If you really know\n");
@@ -105,7 +105,7 @@ main(int argc, char **argv)
 		printf("complain if Quake II eats your dog afterwards!\n");
 
 		return 1;
-	}
+	}*/
 
 	// enforce C locale
 	setenv("LC_ALL", "C", 1);

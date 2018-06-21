@@ -1,3 +1,17 @@
+# Static Quake II SDL
+
+Based on Yamagi Quake II. This port uses SDL 1.2 and has no shared libraries or whatever,
+making it easier to port to platforms that don't support dynamic libraries or have trouble
+with them. (mainly still in development OSes such as HaikuOS and maybe SyllableOS)
+
+For now, it is targetting the RS-97 and eventually the TI-Nspire (CX).
+It works on neither (although the RS-97 build works on the GCW-Zero but not on the RS-97 for some odd reasons probably related to the C library...).
+It needs more modifications for the TI-Nspire and even more striping.
+
+
+==================
+
+
 # Yamagi Quake II
 
 This is the Yamagi Quake II Client, an enhanced version of id Software's Quake

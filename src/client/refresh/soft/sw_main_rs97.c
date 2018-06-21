@@ -1527,7 +1527,7 @@ R_InitContext(void* win)
 
 static qboolean CreateSDLWindow(int flags, int w, int h)
 {
-	window = SDL_SetVideoMode(w, h, 16, SDL_SWSURFACE);
+	window = SDL_SetVideoMode(320, 480, 16, SDL_HWSURFACE);
 	SDL_EnableUNICODE(SDL_TRUE);
 	return window != NULL;
 }
@@ -1775,13 +1775,13 @@ RE_EndFrame (void)
 	}
 
 	Uint16 * pixels = (Uint16 *)window->pixels;
-	for (y=0; y < vid.height;  y++)
+	for (y=0; y < 480;  y++)
 	{
 		for (x=0; x < vid.width; x ++)
 		{
 			int buffer_pos = y * vid.width + x;
 			Uint32 color = pallete_colors[vid_buffer[buffer_pos]];
-			pixels[(y) * window->pitch / sizeof(Uint16) + x] = color;
+			pixels[(y*2) * window->pitch / sizeof(Uint16) + x] = color;
 		}
 	}
 	SDL_Flip(window);
@@ -1849,8 +1849,6 @@ void Sys_Error (char *error, ...)
 	printf("%s", text);
 }
 
-extern FILE* logfp;
-
 void Com_Printf (char *fmt, ...)
 {
 	va_list		argptr;
@@ -1861,8 +1859,7 @@ void Com_Printf (char *fmt, ...)
 	va_end (argptr);
 
 	//R_Printf(PRINT_ALL, "%s", text);
-	//printf("%s", text);
-	fprintf(logfp, "%s", text);
+	printf("%s", text);
 }
 
 /*

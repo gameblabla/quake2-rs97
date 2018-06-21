@@ -3,18 +3,18 @@
 # It's mostly for conveniance and also so i don't have to recompile SDL2 each time.
 #
 
-CC = gcc
-CXX = g++
+CC = nspire-gcc
+CXX = nspire-g++
 
-OUTPUTNAME = quake2.elf
+OUTPUTNAME = quakensp
 
-DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"x86_64\"
+DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"arm\" -Dfseeko64=fseeko -Dftello64=ftello -Dfopen64=fopen
 INCLUDES = -I. -Isrc
 
-OPT_FLAGS  = -O2 -ffast-math -fdata-sections -ffunction-sections -Wdouble-promotion -fsingle-precision-constant
+OPT_FLAGS  = -Os -fdata-sections -ffunction-sections -marm -march=armv5te -mtune=arm926ej-s 
 
 CFLAGS = $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99
-LDFLAGS = -lSDL -lm 
+LDFLAGS = -Wl,--as-needed -Wl,--gc-sections -flto
 
 OBJS =  \
 	src/common/shared/flash.o \
@@ -135,7 +135,9 @@ OBJS =  \
 	src/common/netchan.o \
 	src/common/pmove.o \
 	src/common/szone.o \
-	src/common/zone.o 
+	src/common/zone.o \
+	src/common/unzip/ioapi.o \
+	src/common/unzip/unzip.o
 	
 OBJS += src/client/refresh/soft/sw_main.o \
 	src/backends/generic_strip/misc.o \
@@ -152,6 +154,9 @@ OBJS += src/client/refresh/soft/sw_main.o \
 	
 
 all: executable
+
+gen 	:
+		genzehn --input ${OUTPUTNAME} --output ${OUTPUTNAME}.tns --compress
 
 executable : $(OBJS)
 	$(CC) -o $(OUTPUTNAME) $(OBJS) $(CFLAGS) $(LDFLAGS)

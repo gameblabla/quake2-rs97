@@ -241,8 +241,6 @@ extern float r_world_matrix[16];
 void R_TranslatePlayerSkin(int playernum);
 void R_Bind(int texnum);
 
-void R_TexEnv(GLenum value);
-
 void R_LightPoint(vec3_t p, vec3_t color);
 void R_PushDlights(void);
 
@@ -335,31 +333,6 @@ typedef struct
 
 typedef struct
 {
-	float inverse_intensity;
-	qboolean fullscreen;
-
-	int prev_mode;
-
-	unsigned char *d_16to8table;
-
-	int lightmap_textures;
-
-	int currenttextures[2];
-	int currenttmu;
-	GLenum currenttarget;
-
-	float camera_separation;
-	enum stereo_modes stereo_mode;
-
-	qboolean hwgamma;
-
-	unsigned char originalRedGammaTable[256];
-	unsigned char originalGreenGammaTable[256];
-	unsigned char originalBlueGammaTable[256];
-} glstate_t;
-
-typedef struct
-{
 	int internal_format;
 	int current_lightmap_texture;
 
@@ -373,8 +346,6 @@ typedef struct
 } gllightmapstate_t;
 
 extern glconfig_t gl_config;
-extern glstate_t gl_state;
-
 /*
  * Shuts the render context and SDL window down
  * (if contextOnly, the window will not be shutdown)

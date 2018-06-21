@@ -25,7 +25,6 @@
  */
 
 #include <string.h>
-#include <ctype.h>
 #include "../header/client.h"
 #include "header/qmenu.h"
 

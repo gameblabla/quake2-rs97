@@ -172,7 +172,7 @@ ApplyChanges(void *unused)
 	if (s_mode_list.curvalue != GetCustomValue(&s_mode_list))
 	{
 		/* Restarts automatically */
-		Cvar_SetValue("r_mode", s_mode_list.curvalue);
+		Cvar_SetValue("r_mode", 0);
 	}
 	else
 	{
@@ -319,7 +319,7 @@ VID_MenuInit(void)
 
 	if (!r_mode)
 	{
-		r_mode = Cvar_Get("r_mode", "4", 0);
+		r_mode = Cvar_Get("r_mode", "0", 0);
 	}
 
 	if (!r_hudscale)

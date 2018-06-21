@@ -207,7 +207,7 @@ static qboolean CreateSDLWindow(int flags, int w, int h)
 
 	return window != NULL;
 #else
-	window = SDL_SetVideoMode(w, h, 0, flags);
+	window = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE);
 	SDL_EnableUNICODE(SDL_TRUE);
 	return window != NULL;
 #endif
@@ -343,11 +343,11 @@ GLimp_InitGraphics(int fullscreen, int *pwidth, int *pheight)
 				Com_Printf("Reverting to windowed r_mode 4 (640x480).\n");
 
 				/* Try to recover */
-				Cvar_SetValue("r_mode", 4);
+				Cvar_SetValue("r_mode", 0);
 				Cvar_SetValue("vid_fullscreen", 0);
 				VID_NewWindow(width, height);
-				*pwidth = width = 640;
-				*pheight = height = 480;
+				*pwidth = width = 320;
+				*pheight = height = 240;
 				flags &= ~fs_flag;
 			}
 			else

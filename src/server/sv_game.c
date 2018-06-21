@@ -372,6 +372,10 @@ SV_ShutdownGameProgs(void)
 /*
  * Init the game subsystem for a new map
  */
+ 
+extern game_export_t *
+GetGameAPI(game_import_t *import);
+ 
 void
 SV_InitGameProgs(void)
 {
@@ -442,7 +446,7 @@ SV_InitGameProgs(void)
 	import.SetAreaPortalState = CM_SetAreaPortalState;
 	import.AreasConnected = CM_AreasConnected;
 
-	ge = (game_export_t *)Sys_GetGameAPI(&import);
+	ge = (game_export_t *)GetGameAPI(&import);
 
 	if (!ge)
 	{

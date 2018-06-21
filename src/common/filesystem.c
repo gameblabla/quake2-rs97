@@ -1366,7 +1366,11 @@ FS_AddDirToSearchPath(char *dir, qboolean create) {
 	// the gamedata may break.
 	for (i = 0; i < sizeof(fs_packtypes) / sizeof(fs_packtypes[0]); i++) {
 		for (j = 0; j < MAX_PAKS; j++) {
+#ifdef _TINSPIRE
+			Com_sprintf(path, sizeof(path), "%s/pak%d.%s.tns", dir, j, fs_packtypes[i].suffix);
+#else
 			Com_sprintf(path, sizeof(path), "%s/pak%d.%s", dir, j, fs_packtypes[i].suffix);
+#endif
 
 			switch (fs_packtypes[i].format)
 			{

@@ -51,12 +51,6 @@
  *
  * Until then: Remove the statement below to build with SDL 1.2.
  */
-#ifndef SDL2
-#error "Support for SDL 1.2 is deprecated, and will be removed in \
-the near future. Migrate to SDL 2.0 now. To build the client with \
-SDL 1.2 remove this statement!"
-#endif
-
 /* There's no sdl-config on OS X and Windows */
 #ifdef SDL2
 #include <SDL2/SDL.h>

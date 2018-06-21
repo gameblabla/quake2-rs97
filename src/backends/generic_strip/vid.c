@@ -184,20 +184,8 @@ VID_CheckChanges(void)
 		cl.cinematicpalette_active = false;
 		cls.disable_screen = true;
 
-		// Proceed to reboot the refresher
-		if(!VID_LoadRefresh())
-		{
-			if (strcmp(vid_renderer->string, "gl1") != 0)
-			{
-				Com_Printf("\n ... trying again with standard OpenGL1.x renderer ... \n\n");
-				Cvar_Set("vid_renderer", "gl1");
-				VID_LoadRefresh();
-			}
-			else
-			{
-				Com_Error(ERR_FATAL, "Couldn't load a rendering backend!\n");
-			}
-		}
+		VID_LoadRefresh();
+
 		cls.disable_screen = false;
 	}
 }
@@ -208,7 +196,7 @@ VID_Init(void)
 	/* Create the video variables so we know how to start the graphics drivers */
 	vid_fullscreen = Cvar_Get("vid_fullscreen", "0", CVAR_ARCHIVE);
 	vid_gamma = Cvar_Get("vid_gamma", "1.2", CVAR_ARCHIVE);
-	vid_renderer = Cvar_Get("vid_renderer", "gl1", CVAR_ARCHIVE);
+	vid_renderer = Cvar_Get("vid_renderer", "soft", CVAR_ARCHIVE);
 
 	/* Add some console commands that we want to handle */
 	Cmd_AddCommand("vid_restart", VID_Restart_f);
@@ -222,104 +210,6 @@ VID_Init(void)
 // expects the pixels data to be row-wise, starting at top left
 void VID_WriteScreenshot( int width, int height, int comp, const void* data )
 {
-	char picname[80];
-	char checkname[MAX_OSPATH];
-	int i, success=0;
-	static const char* supportedFormats[] = { "tga", "bmp", "png", "jpg" };
-	static const int numFormats = sizeof(supportedFormats)/sizeof(supportedFormats[0]);
-	int format = 0; // 0=tga 1=bmp 2=png 3=jpg
-	int quality = 85;
-	int argc = Cmd_Argc();
-	const char* gameDir = FS_Gamedir();
-
-	/* FS_InitFilesystem() made sure the screenshots dir exists */
-
-	if(argc > 1)
-	{
-		const char* maybeFormat = Cmd_Argv(1);
-
-		for(i=0; i<numFormats; ++i)
-		{
-			if(Q_stricmp(maybeFormat, supportedFormats[i]) == 0)
-			{
-				format = i;
-				break;
-			}
-		}
-		if(i==numFormats)
-		{
-			Com_Printf("the (optional) second argument to 'screenshot' is the format, one of \"tga\", \"bmp\", \"png\", \"jpg\"\n");
-			return;
-		}
-
-		if(argc > 2)
-		{
-			const char* q = Cmd_Argv(2);
-			int qualityStrLen = strlen(q);
-			for(i=0; i<qualityStrLen; ++i)
-			{
-				if(q[i] < '0' || q[i] > '9')
-				{
-					Com_Printf("the (optional!) third argument to 'screenshot' is jpg quality, a number between 1 and 100\n");
-					Com_Printf("  or png compression level, between 0 and 9!\n");
-					return;
-				}
-			}
-			quality = atoi(q);
-			if(format == 2) // png
-			{
-				if(quality < 0)  quality = 0;
-				else if(quality > 9)  quality = 9;
-			}
-			else if(format == 3) // jpg
-			{
-				if(quality < 1)  quality = 1;
-				else if(quality > 100)  quality = 100;
-			}
-		}
-	}
-
-	/* find a file name to save it to */
-	for (i = 0; i <= 9999; i++)
-	{
-		FILE *f;
-		Com_sprintf(checkname, sizeof(checkname), "%s/scrnshot/q2_%04d.%s", gameDir, i, supportedFormats[format]);
-		f = Q_fopen(checkname, "rb");
-
-		if (!f)
-		{
-			Com_sprintf(picname, sizeof(picname), "q2_%04d.%s", i, supportedFormats[format]);
-			break; /* file doesn't exist */
-		}
-
-		fclose(f);
-	}
-
-	if (i == 10000)
-	{
-		Com_Printf("SCR_ScreenShot_f: Couldn't create a file\n");
-		return;
-	}
-
-	switch(format) // 0=tga 1=bmp 2=png 3=jpg
-	{
-		case 0: success = stbi_write_tga(checkname, width, height, comp, data); break;
-		case 1: success = stbi_write_bmp(checkname, width, height, comp, data); break;
-		case 2:
-			stbi_write_png_compression_level = (quality < 10) ? quality : 7;
-			success = stbi_write_png(checkname, width, height, comp, data, 0);
-			break;
-		case 3: success = stbi_write_jpg(checkname, width, height, comp, data, quality); break;
-	}
-
-	if(success)
-	{
-		Com_Printf("Wrote %s\n", picname);
-	}
-	else
-	{
-		Com_Printf("SCR_ScreenShot_f: Couldn't write %s\n", picname);
-	}
 }
 
 // Structure containing functions exported from refresh DLL
@@ -341,36 +231,14 @@ VID_LoadRefresh(void)
 	refimport_t		ri;
 	GetRefAPI_t		GetRefAPI;
 
-#ifdef __APPLE__
-	const char* lib_ext = "dylib";
-#elif defined(_WIN32)
-	const char* lib_ext = "dll";
-#else
-	const char* lib_ext = "so";
-#endif
-	char reflib_name[64] = {0};
-	char reflib_path[MAX_OSPATH] = {0};
-
 	// If the refresher is already active
 	// we'll shut it down
 	VID_Shutdown();
 
 	// Log it!
 	Com_Printf("----- refresher initialization -----\n");
-
-	snprintf(reflib_name, sizeof(reflib_name), "ref_%s.%s", vid_renderer->string, lib_ext);
-	snprintf(reflib_path, sizeof(reflib_path), "%s%s", Sys_GetBinaryDir(), reflib_name);
-
-	Com_Printf("LoadLibrary(%s)\n", reflib_name);
-	/*GetRefAPI = Sys_LoadLibrary(reflib_path, "GetRefAPI", &reflib_handle);
-	if(GetRefAPI == NULL)
-	{
-		Com_Error( ERR_FATAL, "Loading %s as renderer lib failed!", reflib_name );
-		Cvar_Set("vid_renderer", "gl1");
-
-		return false;
-	}*/
-
+	Com_Printf("LoadLibrary(%s)\n", "SDL");
+	
 	ri.Cmd_AddCommand = Cmd_AddCommand;
 	ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
 	ri.Cmd_Argc = Cmd_Argc;
@@ -401,14 +269,14 @@ VID_LoadRefresh(void)
 	if (re.api_version != API_VERSION)
 	{
 		VID_Shutdown();
-		Com_Error (ERR_FATAL, "%s has incompatible api_version %d", reflib_name, re.api_version);
+		Com_Error (ERR_FATAL, "%s has incompatible api_version %d", "SDL", re.api_version);
 	}
 
 	// Initiate the refresher
 	if (!re.Init())
 	{
 		VID_Shutdown(); // Isn't that just too bad? :(
-		Com_Printf("ERROR: Loading %s as rendering backend failed!\n", reflib_name);
+		Com_Printf("ERROR: Loading %s as rendering backend failed!\n", "SDL");
 		Com_Printf("------------------------------------\n\n");
 		return false; // TODO: try again with default renderer?
 	}
@@ -416,7 +284,7 @@ VID_LoadRefresh(void)
 	/* Ensure that all key states are cleared */
 	Key_MarkAllUp();
 
-	Com_Printf("Successfully loaded %s as rendering backend\n", reflib_name);
+	Com_Printf("Successfully loaded %s as rendering backend\n", "SDL");
 	Com_Printf("------------------------------------\n\n");
 	return true;
 }

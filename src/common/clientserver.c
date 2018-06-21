@@ -170,7 +170,7 @@ Com_VPrintf(int print_level, const char *fmt, va_list argptr)
  * Both client and server can use this, and it will output
  * to the apropriate place.
  */
-void
+/*void
 Com_Printf(char *fmt, ...)
 {
 	va_list argptr;
@@ -178,7 +178,7 @@ Com_Printf(char *fmt, ...)
 	Com_VPrintf(PRINT_ALL, fmt, argptr);
 	va_end(argptr);
 }
-
+*/
 /*
  * A Com_Printf that only shows up if the "developer" cvar is set
  */

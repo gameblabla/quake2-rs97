@@ -142,47 +142,16 @@ Qcommon_Buildstring(void)
 void
 Qcommon_Mainloop(void)
 {
-	long long newtime;
-	long long oldtime = Sys_Microseconds();
-
 	/* The mainloop. The legend. */
 	while (1)
 	{
-		// Throttle the game a little bit.
-		if (busywait->value)
-		{
-			long long spintime = Sys_Microseconds();
-
-			while (1)
-			{
-				if (Sys_Microseconds() - spintime >= FRAMEDELAY)
-				{
-					break;
-				}
-			}
-		}
-		else
-		{
-			Sys_Nanosleep(FRAMEDELAY * 1000);
-		}
-
-		newtime = Sys_Microseconds();
-		Qcommon_Frame(newtime - oldtime);
-		oldtime = newtime;
+		Qcommon_Frame(20);
 	}
 }
 
 void Qcommon_ExecConfigs(qboolean gameStartUp)
 {
 	Cbuf_AddText("exec default.cfg\n");
-	Cbuf_AddText("exec yq2.cfg\n");
-	Cbuf_AddText("exec config.cfg\n");
-	if(gameStartUp)
-	{
-		// only when the game is first started we execute autoexec.cfg and set the cvars from commandline
-		Cbuf_AddText("exec autoexec.cfg\n");
-		Cbuf_AddEarlyCommands(true);
-	}
 	Cbuf_Execute();
 }
 
