@@ -80,6 +80,13 @@ Sys_Init(void)
 {
 }
 
+void
+Sys_Remove(const char *path)
+{
+	remove(path);
+}
+
+
 /* ================================================================ */
 
 char *

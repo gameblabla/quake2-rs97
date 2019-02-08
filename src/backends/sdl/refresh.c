@@ -207,7 +207,7 @@ static qboolean CreateSDLWindow(int flags, int w, int h)
 
 	return window != NULL;
 #else
-	window = SDL_SetVideoMode(320, 480, 16, SDL_SWSURFACE);
+	window = SDL_SetVideoMode(320, 240, 16, SDL_SWSURFACE);
 	SDL_EnableUNICODE(SDL_TRUE);
 	return window != NULL;
 #endif
@@ -248,6 +248,15 @@ GLimp_InitGraphics(int fullscreen, int *pwidth, int *pheight)
 	int width = *pwidth;
 	int height = *pheight;
 	unsigned int fs_flag = 0;
+	
+	if (!SDL_WasInit(SDL_INIT_VIDEO))
+	{
+
+		if (SDL_Init(SDL_INIT_VIDEO) == -1)
+		{
+			return 0;
+		}
+	}
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	if (fullscreen == 1) {
@@ -409,10 +418,10 @@ int glimp_refreshRate = -1;
  */
 int GLimp_GetRefreshRate(void)
 {
-	if (vid_displayrefreshrate->value > -1)
+	/*if (vid_displayrefreshrate->value > -1)
 	{
 		glimp_refreshRate = ceil(vid_displayrefreshrate->value);
-	}
+	}*/
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 

@@ -76,12 +76,16 @@ qboolean is_portable;
 // Game given by user
 char userGivenGame[MAX_QPATH];
 
+// Game should quit next frame.
+// Hack for the signal handlers.
+qboolean quitnextframe;
+
 // ----
 
 static void
 Qcommon_Buildstring(void)
 {
-	/*int i;
+	int i;
 	int verLen;
 	const char* versionString;
 
@@ -101,36 +105,16 @@ Qcommon_Buildstring(void)
 
 #ifndef DEDICATED_ONLY
 	printf("Client build options:\n");
-#ifdef SDL2
-	printf(" + SDL2\n");
-#else
-	printf(" - SDL2 (using 1.2)\n");
-#endif
 
-#ifdef CDA
-	printf(" + CD audio\n");
-#else
-	printf(" - CD audio\n");
-#endif
-#ifdef OGG
-	printf(" + OGG/Vorbis\n");
-#else
-	printf(" - OGG/Vorbis\n");
-#endif
 #ifdef USE_OPENAL
 	printf(" + OpenAL audio\n");
 #else
 	printf(" - OpenAL audio\n");
 #endif
-#ifdef ZIP
-	printf(" + Zip file support\n");
-#else
-	printf(" - Zip file support\n");
-#endif
 #endif
 
 	printf("Platform: %s\n", YQ2OSTYPE);
-	printf("Architecture: %s\n", YQ2ARCH);*/
+	printf("Architecture: %s\n", YQ2ARCH);
 }
 
 #ifndef DEDICATED_ONLY
@@ -155,6 +139,15 @@ Qcommon_Mainloop(void)
 
 			while (1)
 			{
+#if defined (__GNUC__) && (__i386 || __x86_64__)
+				/* Give the CPU a hint that this is a very tight
+				   spinloop. One PAUSE instruction each loop is
+				   enough to reduce power consumption and head
+				   dispersion a lot, it's 95°C against 67°C on
+				   a Kaby Lake laptop. */
+				asm("pause");
+#endif
+
 				if (Sys_Microseconds() - spintime >= FRAMEDELAY)
 				{
 					break;
@@ -186,6 +179,61 @@ void Qcommon_ExecConfigs(qboolean gameStartUp)
 	Cbuf_Execute();
 }
 
+static qboolean checkForHelp(int argc, char **argv)
+{
+	const char* helpArgs[] = { "--help", "-h", "-help", "-?", "/?" };
+	const int numHelpArgs = sizeof(helpArgs)/sizeof(helpArgs[0]);
+
+	for (int i=1; i<argc; ++i)
+	{
+		const char* arg = argv[i];
+
+		for (int h=0; h<numHelpArgs; ++h)
+		{
+			if (Q_stricmp(arg, helpArgs[h]) == 0)
+			{
+				printf("Yamagi Quake II v%s\n", YQ2VERSION);
+				printf("Most interesting commandline arguments:\n");
+				printf("-h or --help: Show this help\n");
+				printf("-datadir <path>\n");
+				printf("  set path to your Quake2 game data (the directory baseq2/ is in)\n");
+				printf("-portable\n");
+				printf("  Write (savegames, configs, ...) in the binary directory\n");
+				printf("+exec <config>\n");
+				printf("  execute the given config (mainly relevant for dedicated servers)\n");
+				printf("+set <cvarname> <value>\n");
+				printf("  Set the given cvar to the given value, e.g. +set vid_fullscreen 0\n");
+
+				printf("\nSome interesting cvars:\n");
+				printf("+set game <gamename>\n");
+				printf("  start the given addon/mod, e.g. +set game xatrix\n");
+#ifndef DEDICATED_ONLY
+				printf("+set vid_fullscreen <0 or 1>\n");
+				printf("  start game in windowed (0) or desktop fullscreen (1)\n");
+				printf("  or classic fullscreen (2) mode\n");
+				printf("+set r_mode <modenumber>\n");
+				printf("  start game in resolution belonging to <modenumber>,\n");
+				printf("  use -1 for custom resolutions:\n");
+				printf("+set r_customwidth <size in pixels>\n");
+				printf("+set r_customheight <size in pixels>\n");
+				printf("  if r_mode is set to -1, these cvars allow you to specify the\n");
+				printf("  width/height of your custom resolution\n");
+				printf("+set vid_renderer <renderer>\n");
+				printf("  Selects the render backend. Currently available:\n");
+				printf("    'gl1'  (old OpenGL 1.x renderer),\n");
+				printf("    'gl3'  (the shiny new OpenGL 3.2 renderer),\n");
+				printf("    'soft' (the experimental software renderer)\n");
+#endif // DEDICATED_ONLY
+				printf("\nSee https://github.com/yquake2/yquake2/blob/master/stuff/cvarlist.md\nfor some more cvars\n");
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void
 Qcommon_Init(int argc, char **argv)
 {
@@ -193,6 +241,13 @@ Qcommon_Init(int argc, char **argv)
 	if (setjmp(abortframe))
 	{
 		Sys_Error("Error during initialization");
+	}
+
+	if (checkForHelp(argc, argv))
+	{
+		// ok, --help or similar commandline option was given
+		// and info was printed, exit the game now
+		exit(1);
 	}
 
 	// Print the build and version string
@@ -246,7 +301,7 @@ Qcommon_Init(int argc, char **argv)
 
 	// cvars
 
-	cl_maxfps = Cvar_Get("cl_maxfps", "20", CVAR_ARCHIVE);
+	cl_maxfps = Cvar_Get("cl_maxfps", "60", CVAR_ARCHIVE);
 
 	developer = Cvar_Get("developer", "0", 0);
 	fixedtime = Cvar_Get("fixedtime", "0", 0);
@@ -264,7 +319,7 @@ Qcommon_Init(int argc, char **argv)
 	cl_async = Cvar_Get("cl_async", "1", CVAR_ARCHIVE);
 	cl_timedemo = Cvar_Get("timedemo", "0", 0);
 	dedicated = Cvar_Get("dedicated", "0", CVAR_NOSET);
-	vid_maxfps = Cvar_Get("vid_maxfps", "95", CVAR_ARCHIVE);
+	vid_maxfps = Cvar_Get("vid_maxfps", "300", CVAR_ARCHIVE);
 	host_speeds = Cvar_Get("host_speeds", "0", 0);
 	log_stats = Cvar_Get("log_stats", "0", 0);
 	showtrace = Cvar_Get("showtrace", "0", 0);
@@ -373,6 +428,14 @@ Qcommon_Frame(int msec)
 	static qboolean last_was_packetframe;
 
 
+	/* Tells the client to shutdown.
+	   Used by the signal handlers. */
+	if (quitnextframe)
+	{
+		Cbuf_AddText("quit");
+	}
+
+
 	/* In case of ERR_DROP we're jumping here. Don't know
 	   if that' really save but it seems to work. So leave
 	   it alone. */
@@ -434,18 +497,21 @@ Qcommon_Frame(int msec)
 		c_pointcontents = 0;
 	}
 
-	// vid_maxfps > 1000 breaks things, and so does <= 0
-	// so cap to 1000 and treat <= 0 as "as fast as possible", which is 1000
-	if (vid_maxfps->value > 1000 || vid_maxfps->value < 1)
+
+	/* We can at maximum render 1000 frames, because the minimum
+	   frametime of the engine is 1 millisecond. And of course we
+	   need to render something, the framerate can never be less
+	   then 1. Cap vid_maxfps between 999 and 1.a */
+	if (vid_maxfps->value > 999 || vid_maxfps->value < 1)
 	{
-		Cvar_SetValue("vid_maxfps", 1000);
+		Cvar_SetValue("vid_maxfps", 999);
 	}
 
-	if(cl_maxfps->value > 250)
+	if (cl_maxfps->value > 250)
 	{
-		Cvar_SetValue("cl_maxfps", 130);
+		Cvar_SetValue("cl_maxfps", 250);
 	}
-	else if(cl_maxfps->value < 1)
+	else if (cl_maxfps->value < 1)
 	{
 		Cvar_SetValue("cl_maxfps", 60);
 	}
@@ -471,23 +537,26 @@ Qcommon_Frame(int msec)
 	}
 
 	/* The target render frame rate may be too high. The current
-	   scene may be more complex than the previous one and SDL
+	   scene may be more complex then the previous one and SDL
 	   may give us a 1 or 2 frames too low display refresh rate.
 	   Add a security magin of 5%, e.g. 60fps * 0.95 = 57fps. */
-	pfps = (cl_maxfps->value > rfps) ? floor(rfps * 0.95) : cl_maxfps->value;
-
+	pfps = (cl_maxfps->value > (rfps * 0.95)) ? floor(rfps * 0.95) : cl_maxfps->value;
 
 	/* Calculate average time spend to process a render
 	   frame. This is highly depended on the GPU and the
-	   scenes complexity. Take the last 60 pure render
-	   frames (frames that are only render frames and
-	   nothing else) into account and add a security
-	   margin of 2%. */
-	if (last_was_renderframe && !last_was_packetframe)
+	   scenes complexity. Take last 60 render frames
+	   into account and add a security margin of 1%.
+
+	   Note: We don't take only pure render frames, but
+	   all render frames into account because on the
+	   popular 60hz displays at least all render frames
+	   are also packet frames if the vsync is enabled. */
+	if (last_was_renderframe)
 	{
 		int measuredframes = 0;
 		static int renderframenum;
 
+		avgrenderframetime = 0;
 		renderframetimes[renderframenum] = msec;
 
 		for (int i = 0; i < 60; i++)
@@ -500,7 +569,7 @@ Qcommon_Frame(int msec)
 		}
 
 		avgrenderframetime /= measuredframes;
-		avgrenderframetime += (avgrenderframetime * 0.02f);
+		avgrenderframetime += (avgrenderframetime * 0.01f);
 
 		renderframenum++;
 
@@ -514,15 +583,20 @@ Qcommon_Frame(int msec)
 
 	/* Calculate the average time spend to process a packet
 	   frame. Packet frames are mostly dependend on the CPU
-	   speed and the network delay. Take the last 60 pure
-	   packet frames (frames that are only packet frames ans
-	   nothing else) into account and add a security margin
-	   of 2%. */
-	if (last_was_packetframe && last_was_renderframe)
+	   speed and the network delay. Take the last packet
+	   frames into account and add a security margin of 1%.
+
+	   Note: Like with the render frames we take all packet
+	   frames into account and not only pure packet frames.
+	   The reasons are the same, on popular 60hz displays
+	   most packet frames are also render frames.
+	   */
+	if (last_was_packetframe)
 	{
 		int measuredframes = 0;
 		static int packetframenum;
 
+		avgpacketframetime = 0;
 		packetframetimes[packetframenum] = msec;
 
 		for (int i = 0; i < 60; i++)
@@ -535,7 +609,7 @@ Qcommon_Frame(int msec)
 		}
 
 		avgpacketframetime /= measuredframes;
-		avgpacketframetime += (avgpacketframetime * 0.02f);
+		avgpacketframetime += (avgpacketframetime * 0.01f);
 
 		packetframenum++;
 
@@ -557,12 +631,12 @@ Qcommon_Frame(int msec)
 	if (!cl_timedemo->value) {
 		if (cl_async->value) {
 			// Network frames..
-			if (packetdelta < ((1000000.0f - avgpacketframetime) / pfps)) {
+			if (packetdelta < ((1000000.0f + avgpacketframetime) / pfps)) {
 				packetframe = false;
 			}
 
 			// Render frames.
-			if (renderdelta < ((1000000.0f - avgrenderframetime) / rfps)) {
+			if (renderdelta < ((1000000.0f + avgrenderframetime) / rfps)) {
 				renderframe = false;
 			}
 		} else {
@@ -629,8 +703,7 @@ Qcommon_Frame(int msec)
 		rf = time_after_ref - time_before_ref;
 		sv -= gm;
 		cl -= rf;
-		Com_Printf("all:%3i sv:%3i gm:%3i cl:%3i rf:%3i\n",
-				all, sv, gm, cl, rf);
+		Com_Printf("all:%3i sv:%3i gm:%3i cl:%3i rf:%3i\n", all, sv, gm, cl, rf);
 	}
 
 
@@ -668,6 +741,14 @@ Qcommon_Frame(int msec)
 	   breaks. That's the Q2 variant if the famous
 	   125hz bug. */
 	qboolean packetframe = true;
+
+
+	/* Tells the client to shutdown.
+	   Used by the signal handlers. */
+	if (quitnextframe)
+	{
+		Cbuf_AddText("quit");
+	}
 
 
 	/* In case of ERR_DROP we're jumping here. Don't know

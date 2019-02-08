@@ -27,14 +27,10 @@
 
 #include "header/common.h"
 #include "header/glob.h"
+#include "unzip/unzip.h"
 
-#ifdef OGG
 #include "../client/sound/header/vorbis.h"
-#endif
 
-#ifdef ZIP
- #include "unzip/unzip.h"
-#endif
 
 #define MAX_HANDLES 512
 #define MAX_PAKS 100
@@ -50,9 +46,7 @@ typedef struct
 	char name[MAX_QPATH];
 	fsMode_t mode;
 	FILE *file;           /* Only one will be used. */
-#ifdef ZIP
 	unzFile *zip;        /* (file or zip) */
-#endif
 } fsHandle_t;
 
 typedef struct fsLink_s
@@ -75,9 +69,8 @@ typedef struct
 	char name[MAX_OSPATH];
 	int numFiles;
 	FILE *pak;
-#ifdef ZIP
 	unzFile *pk3;
-#endif
+	qboolean isProtectedPak;
 	fsPackFile_t *files;
 } fsPack_t;
 
@@ -91,9 +84,7 @@ typedef struct fsSearchPath_s
 typedef enum
 {
 	PAK,
-#ifdef ZIP
 	PK3
-#endif
 } fsPackFormat_t;
 
 typedef struct
@@ -110,16 +101,14 @@ fsSearchPath_t *fs_baseSearchPaths;
 /* Pack formats / suffixes. */
 fsPackTypes_t fs_packtypes[] = {
 	{"pak", PAK},
-#ifdef ZIP
 	{"pk2", PK3},
 	{"pk3", PK3},
 	{"zip", PK3}
-#endif
 };
 
 char datadir[MAX_OSPATH];
 char fs_gamedir[MAX_OSPATH];
-qboolean file_from_pak;
+qboolean file_from_protected_pak;
 
 cvar_t *fs_basedir;
 cvar_t *fs_cddir;
@@ -142,7 +131,6 @@ fsRawPath_t *fs_rawPath;
 
 // --------
 
-#ifdef ZIP
 #if _WIN32
 /*
  * We need some trickery to make minizip Unicode compatible...
@@ -180,7 +168,6 @@ static voidpf ZCALLBACK fopen_file_func_utf(voidpf opaque, const char *filename,
 
 	return file;
 }
-#endif
 #endif
 
 // --------
@@ -318,11 +305,7 @@ FS_HandleForFile(const char *path, fileHandle_t *f)
 
 	for (i = 0; i < MAX_HANDLES; i++, handle++)
 	{
-		if ((handle->file == NULL)
-#ifdef ZIP
-			 && (handle->zip == NULL)
-#endif
-			)
+		if ((handle->file == NULL) && (handle->zip == NULL))
 		{
 			Q_strlcpy(handle->name, path, sizeof(handle->name));
 			*f = i + 1;
@@ -369,13 +352,11 @@ FS_FCloseFile(fileHandle_t f)
 	{
 		fclose(handle->file);
 	}
-#ifdef ZIP
 	else if (handle->zip)
 	{
 		unzCloseCurrentFile(handle->zip);
 		unzClose(handle->zip);
 	}
-#endif
 
 	memset(handle, 0, sizeof(*handle));
 }
@@ -387,13 +368,13 @@ FS_FCloseFile(fileHandle_t f)
 int
 FS_FOpenFile(const char *name, fileHandle_t *f, qboolean gamedir_only)
 {
-	char path[MAX_OSPATH];
+	char path[MAX_OSPATH], lwrName[MAX_OSPATH];
 	fsHandle_t *handle;
 	fsPack_t *pack;
 	fsSearchPath_t *search;
 	int i;
 
-	file_from_pak = false;
+	file_from_protected_pak = false;
 	handle = FS_HandleForFile(name, f);
 	Q_strlcpy(handle->name, name, sizeof(handle->name));
 	handle->mode = FS_READ;
@@ -436,7 +417,11 @@ FS_FOpenFile(const char *name, fileHandle_t *f, qboolean gamedir_only)
 					if (pack->pak)
 					{
 						/* PAK */
-						file_from_pak = true;
+						if (pack->isProtectedPak)
+						{
+							file_from_protected_pak = true;
+						}
+
 						handle->file = Q_fopen(pack->name, "rb");
 
 						if (handle->file)
@@ -445,11 +430,13 @@ FS_FOpenFile(const char *name, fileHandle_t *f, qboolean gamedir_only)
 							return pack->files[i].size;
 						}
 					}
-#ifdef ZIP
 					else if (pack->pk3)
 					{
 						/* PK3 */
-						file_from_pak = true;
+						if (pack->isProtectedPak)
+						{
+							file_from_protected_pak = true;
+						}
 
 #ifdef _WIN32
 						handle->zip = unzOpen2(pack->name, &zlib_file_api);
@@ -470,7 +457,6 @@ FS_FOpenFile(const char *name, fileHandle_t *f, qboolean gamedir_only)
 							unzClose(handle->zip);
 						}
 					}
-#endif
 
 					Com_Error(ERR_FATAL, "Couldn't reopen '%s'", pack->name);
 				}
@@ -485,7 +471,9 @@ FS_FOpenFile(const char *name, fileHandle_t *f, qboolean gamedir_only)
 
 			if (!handle->file)
 			{
-				Q_strlwr(path);
+				Com_sprintf(lwrName, sizeof(lwrName), "%s", handle->name);
+				Q_strlwr(lwrName);
+				Com_sprintf(path, sizeof(path), "%s/%s", search->path, lwrName);
 				handle->file = Q_fopen(path, "rb");
 			}
 
@@ -541,12 +529,10 @@ FS_Read(void *buffer, int size, fileHandle_t f)
 		{
 			r = fread(buf, 1, remaining, handle->file);
 		}
-#ifdef ZIP
 		else if (handle->zip)
 		{
 			r = unzReadCurrentFile(handle->zip, buf, remaining);
 		}
-#endif
 		else
 		{
 			return 0;
@@ -609,12 +595,10 @@ FS_FRead(void *buffer, int size, int count, fileHandle_t f)
 			{
 				r = fread(buf, 1, remaining, handle->file);
 			}
-#ifdef ZIP
 			else if (handle->zip)
 			{
 				r = unzReadCurrentFile(handle->zip, buf, remaining);
 			}
-#endif
 			else
 			{
 				return 0;
@@ -761,9 +745,7 @@ FS_LoadPAK(const char *packPath)
 	pack = Z_Malloc(sizeof(fsPack_t));
 	Q_strlcpy(pack->name, packPath, sizeof(pack->name));
 	pack->pak = handle;
-#ifdef ZIP
 	pack->pk3 = NULL;
-#endif
 	pack->numFiles = numFiles;
 	pack->files = files;
 
@@ -772,7 +754,6 @@ FS_LoadPAK(const char *packPath)
 	return pack;
 }
 
-#ifdef ZIP
 /*
  * Takes an explicit (not game tree related) path to a pack file.
  *
@@ -846,7 +827,6 @@ FS_LoadPK3(const char *packPath)
 
 	return pack;
 }
-#endif
 
 /*
  * Allows enumerating all of the directories in the search path.
@@ -911,11 +891,7 @@ FS_Path_f(void)
 
 	for (i = 0, handle = fs_handles; i < MAX_HANDLES; i++, handle++)
 	{
-		if ((handle->file != NULL)
-#ifdef ZIP
-			 || (handle->zip != NULL)
-#endif
-			)
+		if ((handle->file != NULL) || (handle->zip != NULL))
 		{
 			Com_Printf("Handle %i: '%s'.\n", i + 1, handle->name);
 		}
@@ -927,11 +903,8 @@ FS_Path_f(void)
 	}
 
 	Com_Printf("----------------------\n");
-#ifdef ZIP
+
 	Com_Printf("%i files in PAK/PK2/PK3/ZIP files.\n", totalFiles);
-#else
-	Com_Printf("%i files in PAK/PK2 files.\n", totalFiles);
-#endif
 }
 
 /*
@@ -1308,21 +1281,114 @@ FS_Dir_f(void)
 
 // --------
 
+/*
+ * This function returns true if a real file (e.g. not something
+ * in a pak, somthing in the file system itself) exists in the
+ * current gamedir.
+ */
+qboolean
+FS_FileInGamedir(const char *file)
+{
+	char path[MAX_OSPATH];
+	FILE *fd;
+
+	Com_sprintf(path, sizeof(path), "%s/%s", fs_gamedir, file);
+
+	if ((fd = Q_fopen(path, "rb")) != NULL)
+	{
+		fclose(fd);
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+/*
+ * This function loads the given .pak / .pk3 File from the
+ * fs_gamedir. There's no need to load from other dirs since
+ * fs_gamedir is the only dir written to at runtime.
+ */
+qboolean
+FS_AddPAKFromGamedir(const char *pak)
+{
+	char path[MAX_OSPATH];
+
+	Com_sprintf(path, sizeof(path), "%s/%s", fs_gamedir, pak);
+
+	// Check of the file really exists.
+	FILE *fd;
+
+	if ((fd = Q_fopen(path, "rb")) == NULL)
+	{
+		assert(fd && "FS_AddPAKfromGamedir() called with nonexisting file");;
+	}
+	else
+	{
+		fclose(fd);
+	}
+
+	// Depending on filetype we must load it as .pak or .pk3.
+	for (int i = 0; i < sizeof(fs_packtypes) / sizeof(fs_packtypes[0]); i++)
+	{
+		// Not the current filetype, next one please.
+		if (strncmp(pak + strlen(pak) - strlen(fs_packtypes[i].suffix), fs_packtypes[i].suffix, strlen(fs_packtypes[i].suffix)))
+		{
+			continue;
+		}
+
+		fsPack_t *pakfile = NULL;
+
+		switch (fs_packtypes[i].format)
+		{
+			case PAK:
+				pakfile = FS_LoadPAK(path);
+				break;
+			case PK3:
+				pakfile = FS_LoadPK3(path);
+				break;
+		}
+
+		if (pakfile == NULL)
+		{
+			// Couldn't load it.
+			return false;
+		}
+		else
+		{
+			// Add it.
+			fsSearchPath_t *search = Z_Malloc(sizeof(fsSearchPath_t));
+			search->pack = pakfile;
+			search->next = fs_searchPaths;
+			fs_searchPaths = search;
+
+			return true;
+		}
+	}
+
+	// Apparently we didn't load anything.
+	return false;
+}
+
 const char*
 FS_GetNextRawPath(const char* lastRawPath)
 {
 	assert(fs_rawPath != NULL && "Don't call this if before FS_InitFilesystem()");
-	if(lastRawPath == NULL)
+
+	if (lastRawPath == NULL)
 	{
 		return fs_rawPath->path;
 	}
-	for(fsRawPath_t* rp = fs_rawPath; rp != NULL; rp = rp->next)
+
+	for (fsRawPath_t* rp = fs_rawPath; rp != NULL; rp = rp->next)
 	{
-		if(rp->path == lastRawPath)
+		if (rp->path == lastRawPath)
 		{
 			return (rp->next != NULL) ? rp->next->path : NULL;
 		}
 	}
+
 	return NULL;
 }
 
@@ -1361,27 +1427,33 @@ FS_AddDirToSearchPath(char *dir, qboolean create) {
 	search->next = fs_searchPaths;
 	fs_searchPaths = search;
 
-	// We need to add numbered paks in te directory in
+	// We need to add numbered paks in the directory in
 	// sequence and all other paks after them. Otherwise
 	// the gamedata may break.
 	for (i = 0; i < sizeof(fs_packtypes) / sizeof(fs_packtypes[0]); i++) {
 		for (j = 0; j < MAX_PAKS; j++) {
-#ifdef _TINSPIRE
-			Com_sprintf(path, sizeof(path), "%s/pak%d.%s.tns", dir, j, fs_packtypes[i].suffix);
-#else
 			Com_sprintf(path, sizeof(path), "%s/pak%d.%s", dir, j, fs_packtypes[i].suffix);
-#endif
 
 			switch (fs_packtypes[i].format)
 			{
 				case PAK:
 					pack = FS_LoadPAK(path);
+
+					if (pack)
+					{
+						pack->isProtectedPak = true;
+					}
+
 					break;
-#ifdef ZIP
 				case PK3:
 					pack = FS_LoadPK3(path);
+
+					if (pack)
+					{
+						pack->isProtectedPak = false;
+					}
+
 					break;
-#endif
 			}
 
 			if (pack == NULL)
@@ -1423,17 +1495,17 @@ FS_AddDirToSearchPath(char *dir, qboolean create) {
 				case PAK:
 					pack = FS_LoadPAK(list[j]);
 					break;
-#ifdef ZIP
 				case PK3:
 					pack = FS_LoadPK3(list[j]);
 					break;
-#endif
 			}
 
 			if (pack == NULL)
 			{
 				continue;
 			}
+
+			pack->isProtectedPak = false;
 
 			search = Z_Malloc(sizeof(fsSearchPath_t));
 			search->pack = pack;
@@ -1511,12 +1583,10 @@ FS_BuildGameSpecificSearchPath(char *dir)
 				fclose(fs_searchPaths->pack->pak);
 			}
 
-#ifdef ZIP
 			if (fs_searchPaths->pack->pk3)
 			{
 				unzClose(fs_searchPaths->pack->pk3);
 			}
-#endif
 
 			Z_Free(fs_searchPaths->pack->files);
 			Z_Free(fs_searchPaths->pack);
@@ -1530,12 +1600,7 @@ FS_BuildGameSpecificSearchPath(char *dir)
 	/* Close open files for game dir. */
 	for (i = 0; i < MAX_HANDLES; i++)
 	{
-		if (strstr(fs_handles[i].name, dir) &&
-				((fs_handles[i].file != NULL)
-#ifdef ZIP
-				|| (fs_handles[i].zip != NULL)
-#endif
-		))
+		if (strstr(fs_handles[i].name, dir) && ((fs_handles[i].file != NULL) || (fs_handles[i].zip != NULL)))
 		{
 			FS_FCloseFile(i);
 		}
@@ -1580,9 +1645,11 @@ FS_BuildGameSpecificSearchPath(char *dir)
 	// the gamedir has changed, so read in the corresponding configs
 	Qcommon_ExecConfigs(false);
 
-#if !defined(DEDICATED_ONLY) && defined(OGG)
-	// this function is called whenever the game cvar changes => the player wants to switch to another mod
-	// in that case the list of music tracks needs to be loaded again (=> tracks are possibly from the new mod dir)
+#ifndef DEDICATED_ONLY
+	// This function is called whenever the game cvar changes =>
+	// the player wants to switch to another mod. In that case the
+	// list of music tracks needs to be loaded again (=> tracks
+	// are possibly from the new mod dir)
 	OGG_InitTrackList();
 #endif
 }
@@ -1676,7 +1743,7 @@ FS_InitFilesystem(void)
 	{
 		FS_BuildGameSpecificSearchPath(fs_gamedirvar->string);
 	}
-#if !defined(DEDICATED_ONLY) && defined(OGG)
+#ifndef DEDICATED_ONLY
 	else
 	{
 		// no mod, but we still need to get the list of OGG tracks for background music

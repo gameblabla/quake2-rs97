@@ -2,32 +2,29 @@
 # Makefile for Linux
 # It's mostly for conveniance and also so i don't have to recompile SDL2 each time.
 #
-CHAINPREFIX=/opt/rs97-toolchain
-CROSS_COMPILE=$(CHAINPREFIX)/usr/bin/mipsel-linux-
+CHAINPREFIX=/opt/bittboy-toolchain
+CROSS_COMPILE=$(CHAINPREFIX)/usr/bin/arm-miyoo-linux-musleabi-
 CC = $(CROSS_COMPILE)gcc
 CXX = $(CROSS_COMPILE)g++
 STRIP = $(CROSS_COMPILE)strip
-SYSROOT     := $(CHAINPREFIX)/usr/mipsel-buildroot-linux-uclibc/sysroot
+SYSROOT     := $(CHAINPREFIX)/usr/arm-miyoo-linux-musleabi/sysroot
 SDL_CFLAGS  := $(shell $(SYSROOT)/usr/bin/sdl-config --cflags)
 SDL_LIBS    := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
 
-OUTPUTNAME = quake2.elf
+OUTPUTNAME = quakers97.butt
 
-DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"mips32\"
+DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"arm\" -Iinclude
 INCLUDES = -I. -Isrc
 
-OPT_FLAGS  = -O0 -mips32 
+OPT_FLAGS  = -O1 -fdata-sections -ffunction-sections
 
 CFLAGS = $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99
-LDFLAGS = -lSDL -lm -ldl -lc
+LDFLAGS = -lSDL -lasound -lm
 
 OBJS =  \
 	src/common/shared/flash.o \
 	src/common/shared/rand.o \
 	src/common/shared/shared.o \
-	src/common/unzip/miniz.o \
-	src/common/unzip/unzip.o \
-	src/common/unzip/ioapi.o \
 	src/game/g_ai.o \
 	src/game/g_chase.o \
 	src/game/g_cmds.o \
@@ -117,20 +114,10 @@ OBJS =  \
 	src/client/refresh/soft/sw_scan.o \
 	src/client/refresh/soft/sw_sprite.o \
 	src/client/refresh/soft/sw_surf.o \
+	src/client/refresh/soft/sw_main.o \
 	src/client/refresh/files/pcx.o \
-	src/client/refresh/files/pvs.o \
 	src/client/refresh/files/stb.o \
 	src/client/refresh/files/wal.o \
-	src/server/sv_cmd.o \
-	src/server/sv_conless.o \
-	src/server/sv_entities.o \
-	src/server/sv_game.o \
-	src/server/sv_init.o \
-	src/server/sv_main.o \
-	src/server/sv_save.o \
-	src/server/sv_send.o \
-	src/server/sv_user.o \
-	src/server/sv_world.o \
 	src/common/md4.o \
 	src/common/argproc.o \
 	src/common/clientserver.o \
@@ -144,10 +131,19 @@ OBJS =  \
 	src/common/netchan.o \
 	src/common/pmove.o \
 	src/common/szone.o \
-	src/common/zone.o 
-	
-OBJS += src/client/refresh/soft/sw_main.o \
-	src/backends/generic_strip/misc.o \
+	src/common/zone.o \
+	src/server/sv_cmd.o \
+	src/server/sv_conless.o \
+	src/server/sv_entities.o \
+	src/server/sv_game.o \
+	src/server/sv_init.o \
+	src/server/sv_main.o \
+	src/server/sv_save.o \
+	src/server/sv_send.o \
+	src/server/sv_user.o \
+	src/server/sv_world.o
+  
+OBJS += src/backends/generic_strip/misc.o \
 	src/backends/generic_strip/vid.o \
 	src/common/frame-nolimit.o \
 	src/backends/basic/main.o \

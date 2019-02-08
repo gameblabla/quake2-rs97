@@ -11,7 +11,7 @@ OUTPUTNAME = quake2.elf
 DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"x86_64\"
 INCLUDES = -I. -Isrc
 
-OPT_FLAGS  = -O2 -ffast-math -fdata-sections -ffunction-sections -Wdouble-promotion -fsingle-precision-constant
+OPT_FLAGS  = -O0 -g3 -m32
 
 CFLAGS = $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99
 LDFLAGS = -lSDL -lm 
@@ -20,6 +20,9 @@ OBJS =  \
 	src/common/shared/flash.o \
 	src/common/shared/rand.o \
 	src/common/shared/shared.o \
+	src/common/unzip/miniz.o \
+	src/common/unzip/unzip.o \
+	src/common/unzip/ioapi.o \
 	src/game/g_ai.o \
 	src/game/g_chase.o \
 	src/game/g_cmds.o \
@@ -110,6 +113,7 @@ OBJS =  \
 	src/client/refresh/soft/sw_sprite.o \
 	src/client/refresh/soft/sw_surf.o \
 	src/client/refresh/files/pcx.o \
+	src/client/refresh/files/pvs.o \
 	src/client/refresh/files/stb.o \
 	src/client/refresh/files/wal.o \
 	src/server/sv_cmd.o \

@@ -19,39 +19,72 @@
  *
  * =======================================================================
  *
- * This file is the starting point of the program. It does some platform
- * specific initialization stuff and calls the common initialization code.
+ * The PVS Decompress
  *
  * =======================================================================
  */
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#ifdef _TINSPIRE
-#include <libndls.h>
-#endif
+#include "../ref_shared.h"
 
-#include "../../common/header/common.h"
-void registerHandler(void);
 
-int
-main(int argc, char *argv[])
+/*
+===================
+Mod_DecompressVis
+===================
+*/
+byte *
+Mod_DecompressVis(byte *in, int row)
 {
-	#ifdef _TINSPIRE
-	enable_relative_paths(argv);
-	#endif
-	
-	// register signal handler
-	registerHandler();
+	static byte decompressed[MAX_MAP_LEAFS / 8];
+	int c;
+	byte *out;
 
-	// Setup FPU if necessary
-	Sys_SetupFPU();
-	
-	// Initialize the game.
-	// Never returns.
-	Qcommon_Init(argc, argv);
+	out = decompressed;
 
-	return 0;
+	if (!in)
+	{
+		/* no vis info, so make all visible */
+		while (row)
+		{
+			*out++ = 0xff;
+			row--;
+		}
+
+		return decompressed;
+	}
+
+	do
+	{
+		if (*in)
+		{
+			*out++ = *in++;
+			continue;
+		}
+
+		c = in[1];
+		in += 2;
+
+		while (c)
+		{
+			*out++ = 0;
+			c--;
+		}
+	}
+	while (out - decompressed < row);
+
+	return decompressed;
 }
 
+float
+Mod_RadiusFromBounds(const vec3_t mins, const vec3_t maxs)
+{
+	int i;
+	vec3_t corner;
+
+	for (i = 0; i < 3; i++)
+	{
+		corner[i] = fabs(mins[i]) > fabs(maxs[i]) ? fabs(mins[i]) : fabs(maxs[i]);
+	}
+
+	return VectorLength(corner);
+}

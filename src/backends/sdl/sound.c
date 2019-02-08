@@ -1321,25 +1321,8 @@ SDL_BackendInit(void)
 	}
 
 	int sndbits = (Cvar_Get("sndbits", "16", CVAR_ARCHIVE))->value;
-	int sndfreq = (Cvar_Get("s_khz", "44", CVAR_ARCHIVE))->value;
+	int sndfreq = (Cvar_Get("s_khz", "48", CVAR_ARCHIVE))->value;
 	int sndchans = (Cvar_Get("sndchannels", "2", CVAR_ARCHIVE))->value;
-
-#ifdef _WIN32
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	s_sdldriver = (Cvar_Get("s_sdldriver", "directsound", CVAR_ARCHIVE));
-#else
-	s_sdldriver = (Cvar_Get("s_sdldriver", "dsound", CVAR_ARCHIVE));
-#endif
-#elif __linux__
-	s_sdldriver = (Cvar_Get("s_sdldriver", "alsa", CVAR_ARCHIVE));
-#elif __APPLE__
-	s_sdldriver = (Cvar_Get("s_sdldriver", "CoreAudio", CVAR_ARCHIVE));
-#else
-	s_sdldriver = (Cvar_Get("s_sdldriver", "dsp", CVAR_ARCHIVE));
-#endif
-
-	snprintf(reqdriver, sizeof(reqdriver), "%s=%s", "SDL_AUDIODRIVER", s_sdldriver->string);
-	putenv(reqdriver);
 
 	Com_Printf("Starting SDL audio callback.\n");
 

@@ -339,6 +339,9 @@ PF_inPHS(vec3_t p1, vec3_t p2)
 	return true;
 }
 
+extern game_export_t *
+GetGameAPI(game_import_t *import);
+
 void
 PF_StartSound(edict_t *entity, int channel, int sound_num,
 		float volume, float attenuation, float timeofs)
@@ -372,10 +375,6 @@ SV_ShutdownGameProgs(void)
 /*
  * Init the game subsystem for a new map
  */
- 
-extern game_export_t *
-GetGameAPI(game_import_t *import);
- 
 void
 SV_InitGameProgs(void)
 {

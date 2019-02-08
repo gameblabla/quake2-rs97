@@ -145,6 +145,36 @@ GetGameAPI(game_import_t *import)
 	return &globals;
 }
 
+/*
+ * this is only here so the functions
+ * in shared source files can link
+ */
+void
+Sys_Error(char *error, ...)
+{
+	va_list argptr;
+	char text[1024];
+
+	va_start(argptr, error);
+	vsprintf(text, error, argptr);
+	va_end(argptr);
+
+	gi.error("%s", text);
+}
+
+void
+Com_Printf(char *msg, ...)
+{
+	va_list argptr;
+	char text[1024];
+
+	va_start(argptr, msg);
+	vsprintf(text, msg, argptr);
+	va_end(argptr);
+
+	/*gi.dprintf("%s", text);*/
+}
+
 /* ====================================================================== */
 
 void
@@ -374,8 +404,8 @@ ExitLevel(void)
 		}
 	}
 
+	debristhisframe = 0;
 	gibsthisframe = 0;
-	lastgibframe = 0;
 }
 
 /*
@@ -389,6 +419,9 @@ G_RunFrame(void)
 
 	level.framenum++;
 	level.time = level.framenum * FRAMETIME;
+
+	gibsthisframe = 0;
+	debristhisframe = 0;
 
 	/* choose a client for monsters to target this frame */
 	AI_SetSightClient();
