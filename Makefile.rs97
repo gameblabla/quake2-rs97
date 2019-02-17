@@ -16,10 +16,10 @@ OUTPUTNAME = quake2.elf
 DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"mips32\"
 INCLUDES = -I. -Isrc
 
-OPT_FLAGS  = -O0 -mips32 
+OPT_FLAGS  = -Os -fdata-sections -ffunction-sections -membedded-data -muninit-const-in-rodata -mno-check-zero-division -mno-fp-exceptions -fno-PIC -fno-common -mips32 -fno-PIC -mno-abicalls -mno-mips16 -mno-interlink-compressed -mframe-header-opt -mgpopt -mlocal-sdata -mlong32 -fsingle-precision-constant -mips32 
 
-CFLAGS = $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99
-LDFLAGS = -lSDL -lm -ldl -lc
+CFLAGS = $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99 -mno-memcpy
+LDFLAGS = -lSDL -lm -ldl -lc   -Wl,--as-needed -Wl,--gc-sections -flto -s -no-pie 
 
 OBJS =  \
 	src/common/shared/flash.o \
@@ -149,12 +149,12 @@ OBJS =  \
 OBJS += src/client/refresh/soft/sw_main.o \
 	src/backends/generic_strip/misc.o \
 	src/backends/generic_strip/vid.o \
-	src/common/frame-nolimit.o \
-	src/backends/basic/main.o \
-	src/backends/basic/network.o \
-	src/backends/basic/signalhandler.o \
-	src/backends/basic/system.o \
-	src/backends/basic/shared/hunk.o
+	src/common/frame.o \
+	src/backends/unix/main.o \
+	src/backends/unix/network.o \
+	src/backends/unix/signalhandler.o \
+	src/backends/unix/system.o \
+	src/backends/unix/shared/hunk.o
   
 .c.o:
 	$(CC) $(CFLAGS) -c -o $@ $< 

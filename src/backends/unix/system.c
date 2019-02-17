@@ -25,6 +25,8 @@
  */
 
 #include <dirent.h>
+//#include <dlfcn.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -41,7 +43,6 @@
 
 #include "../../common/header/common.h"
 #include "../../common/header/glob.h"
-#include "../generic/header/input.h"
 
 // Pointer to game library
 static void *game_library;
@@ -51,6 +52,30 @@ qboolean stdin_active = true;
 
 // Console logfile
 extern FILE	*logfile;
+
+/* ================================================================ */
+
+void
+System_Sys_Error(char *error, ...)
+{
+	va_list argptr;
+	char string[1024];
+
+	/* change stdin to non blocking */
+	fcntl(0, F_SETFL, fcntl(0, F_GETFL, 0) & ~FNDELAY);
+
+#ifndef DEDICATED_ONLY
+	CL_Shutdown();
+#endif
+	Qcommon_Shutdown();
+
+	va_start(argptr, error);
+	vsnprintf(string, 1024, error, argptr);
+	va_end(argptr);
+	fprintf(stderr, "Error: %s\n", string);
+
+	exit(1);
+}
 
 void
 Sys_Quit(void)
@@ -66,7 +91,7 @@ Sys_Quit(void)
 	}
 
 	Qcommon_Shutdown();
-	/*fcntl(0, F_SETFL, fcntl(0, F_GETFL, 0) & ~FNDELAY);*/
+	fcntl(0, F_SETFL, fcntl(0, F_GETFL, 0) & ~FNDELAY);
 
 	printf("------------------------------------\n");
 
@@ -222,7 +247,7 @@ Sys_FindFirst(char *path, unsigned musthave, unsigned canhave)
 
 	if (fdir)
 	{
-		Sys_Error("Sys_BeginFind without close");
+		System_Sys_Error("Sys_BeginFind without close");
 	}
 
 	strcpy(findbase, path);
@@ -300,17 +325,8 @@ Sys_FindClose(void)
 
 /* ================================================================ */
 
-void
-Sys_UnloadGame(void)
-{
-	/*if (game_library)
-	{
-		dlclose(game_library);
-	}
 
-	game_library = NULL;*/
-}
-
+/* ================================================================ */
 
 void
 Sys_Mkdir(char *path)
@@ -366,6 +382,43 @@ Sys_GetHomeDir(void)
 	snprintf(gdir, sizeof(gdir), "%s/%s/", home, CFGDIR);
 
 	return gdir;
+}
+
+void
+Sys_Remove(const char *path)
+{
+	remove(path);
+}
+
+int
+Sys_Rename(const char *from, const char *to)
+{
+	return rename(from, to);
+}
+
+void
+Sys_RemoveDir(const char *path)
+{
+	char filepath[MAX_OSPATH];
+	DIR *directory = opendir(path);
+	struct dirent *file;
+
+	if (Sys_IsDir(path))
+	{
+		while ((file = readdir(directory)) != NULL)
+		{
+			snprintf(filepath, MAX_OSPATH, "%s/%s", path, file->d_name);
+			Sys_Remove(filepath);
+		}
+
+		closedir(directory);
+		Sys_Remove(path);
+	}
+}
+
+void
+Sys_UnloadGame(void)
+{
 }
 
 /* ================================================================ */

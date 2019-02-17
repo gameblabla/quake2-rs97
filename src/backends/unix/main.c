@@ -97,7 +97,7 @@ main(int argc, char **argv)
 	}*/
 
 	// Enforce the real UID to prevent setuid crap
-	/*if (getuid() != geteuid())
+	if (getuid() != geteuid())
 	{
 		printf("The effective UID is not the real UID! Your binary is probably marked\n");
 		printf("'setuid'. That is not good idea, please fix it :) If you really know\n");
@@ -105,7 +105,7 @@ main(int argc, char **argv)
 		printf("complain if Quake II eats your dog afterwards!\n");
 
 		return 1;
-	}*/
+	}
 
 	// enforce C locale
 	setenv("LC_ALL", "C", 1);

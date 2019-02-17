@@ -16,15 +16,18 @@ OUTPUTNAME = quakers97.butt
 DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"arm\" -Iinclude
 INCLUDES = -I. -Isrc
 
-OPT_FLAGS  = -O1 -fdata-sections -ffunction-sections
+OPT_FLAGS  = -Ofast -fdata-sections -ffunction-sections
 
-CFLAGS = $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99
-LDFLAGS = -lSDL -lasound -lm
+CFLAGS = $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99 -fno-PIC
+LDFLAGS = -lSDL -lasound -lm -Wl,--as-needed -Wl,--gc-sections -s -flto -no-pie
 
 OBJS =  \
 	src/common/shared/flash.o \
 	src/common/shared/rand.o \
 	src/common/shared/shared.o \
+	src/common/unzip/miniz.o \
+	src/common/unzip/unzip.o \
+	src/common/unzip/ioapi.o \
 	src/game/g_ai.o \
 	src/game/g_chase.o \
 	src/game/g_cmds.o \
@@ -114,10 +117,20 @@ OBJS =  \
 	src/client/refresh/soft/sw_scan.o \
 	src/client/refresh/soft/sw_sprite.o \
 	src/client/refresh/soft/sw_surf.o \
-	src/client/refresh/soft/sw_main.o \
 	src/client/refresh/files/pcx.o \
+	src/client/refresh/files/pvs.o \
 	src/client/refresh/files/stb.o \
 	src/client/refresh/files/wal.o \
+	src/server/sv_cmd.o \
+	src/server/sv_conless.o \
+	src/server/sv_entities.o \
+	src/server/sv_game.o \
+	src/server/sv_init.o \
+	src/server/sv_main.o \
+	src/server/sv_save.o \
+	src/server/sv_send.o \
+	src/server/sv_user.o \
+	src/server/sv_world.o \
 	src/common/md4.o \
 	src/common/argproc.o \
 	src/common/clientserver.o \
@@ -131,26 +144,17 @@ OBJS =  \
 	src/common/netchan.o \
 	src/common/pmove.o \
 	src/common/szone.o \
-	src/common/zone.o \
-	src/server/sv_cmd.o \
-	src/server/sv_conless.o \
-	src/server/sv_entities.o \
-	src/server/sv_game.o \
-	src/server/sv_init.o \
-	src/server/sv_main.o \
-	src/server/sv_save.o \
-	src/server/sv_send.o \
-	src/server/sv_user.o \
-	src/server/sv_world.o
-  
-OBJS += src/backends/generic_strip/misc.o \
+	src/common/zone.o 
+	
+OBJS += src/client/refresh/soft/sw_main.o \
+	src/backends/generic_strip/misc.o \
 	src/backends/generic_strip/vid.o \
-	src/common/frame-nolimit.o \
-	src/backends/basic/main.o \
-	src/backends/basic/network.o \
-	src/backends/basic/signalhandler.o \
-	src/backends/basic/system.o \
-	src/backends/basic/shared/hunk.o
+	src/common/frame.o \
+	src/backends/unix/main.o \
+	src/backends/unix/network.o \
+	src/backends/unix/signalhandler.o \
+	src/backends/unix/system.o \
+	src/backends/unix/shared/hunk.o
   
 .c.o:
 	$(CC) $(CFLAGS) -c -o $@ $< 

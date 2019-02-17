@@ -113,7 +113,7 @@ vidmode_t vid_modes[] = {
 
 /* Console variables that we need to access from this module */
 cvar_t *vid_gamma;
-cvar_t *vid_fullscreen;
+extern cvar_t *vid_fullscreen;
 cvar_t *vid_renderer;
 
 /* Global variables used internally by this module */

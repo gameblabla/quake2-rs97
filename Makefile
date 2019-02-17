@@ -144,12 +144,12 @@ OBJS =  \
 OBJS += src/client/refresh/soft/sw_main.o \
 	src/backends/generic_strip/misc.o \
 	src/backends/generic_strip/vid.o \
-	src/common/frame-nolimit.o \
-	src/backends/basic/main.o \
-	src/backends/basic/network.o \
-	src/backends/basic/signalhandler.o \
-	src/backends/basic/system.o \
-	src/backends/basic/shared/hunk.o
+	src/common/frame.o \
+	src/backends/unix/main.o \
+	src/backends/unix/network.o \
+	src/backends/unix/signalhandler.o \
+	src/backends/unix/system.o \
+	src/backends/unix/shared/hunk.o
   
 .c.o:
 	$(CC) $(CFLAGS) -c -o $@ $< 

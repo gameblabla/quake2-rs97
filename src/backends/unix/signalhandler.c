@@ -28,9 +28,14 @@
 
 #include <signal.h>
 
+#if defined(__linux__) || defined(__FreeBSD__)
+
+#endif
+
 #include "../../common/header/common.h"
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
+//#include <execinfo.h>
 
 void
 printBacktrace(int sig)
@@ -54,9 +59,9 @@ printBacktrace(int sig)
 	for (i = 0; i < size; i++)
 	{
 		printf("  %s\n", strings[i]);
-	}
+	}*/
 
-	printf("\n");*/
+	printf("\n");
 }
 
 #else
@@ -64,14 +69,14 @@ printBacktrace(int sig)
 void
 printBacktrace(int sig)
 {
-	/*printf("Product:      Yamagi Quake II\n");
+	printf("Product:      Yamagi Quake II\n");
 	printf("Version:      %s\n", YQ2VERSION);
 	printf("Platform:     %s\n", YQ2OSTYPE);
 	printf("Architecture: %s\n", YQ2ARCH);
 	printf("Compiler:     %s\n", __VERSION__);
 	printf("Signal:       %i\n", sig);
 	printf("\nBacktrace:\n");
-	printf("  Not available on this plattform.\n\n");*/
+	printf("  Not available on this plattform.\n\n");
 }
 
 #endif
@@ -79,7 +84,7 @@ printBacktrace(int sig)
 void
 signalhandler(int sig)
 {
-	/*printf("\n=======================================================\n");
+	printf("\n=======================================================\n");
 	printf("\nYamagi Quake II crashed! This should not happen...\n");
 	printf("\nMake sure that you're using the last version. It can\n");
 	printf("be found at http://www.yamagi.org/quake2. If you do,\n");
@@ -100,32 +105,37 @@ signalhandler(int sig)
 
 	printBacktrace(sig);
 
+	/* make sure this is written */
 	fflush(stdout);
 
+	/* reset signalhandler */
 	signal(SIGSEGV, SIG_DFL);
 	signal(SIGILL, SIG_DFL);
 	signal(SIGFPE, SIG_DFL);
 	signal(SIGABRT, SIG_DFL);
 
-	raise(sig);*/
+	/* pass signal to the os */
+	raise(sig);
 }
-
+/*
+extern qboolean quitnextframe;
+*/
 void
 terminate(int sig)
 {
-	/*Cbuf_AddText("quit");*/
+	//quitnextframe = true;
 }
 
 void
 registerHandler(void)
 {
 	/* Crash */
-	/*signal(SIGSEGV, signalhandler);
+	signal(SIGSEGV, signalhandler);
 	signal(SIGILL, signalhandler);
 	signal(SIGFPE, signalhandler);
-	signal(SIGABRT, signalhandler);*/
+	signal(SIGABRT, signalhandler);
 
 	/* User abort */
-	/*signal(SIGINT, terminate);
-	signal(SIGTERM, terminate);*/
+	signal(SIGINT, terminate);
+	signal(SIGTERM, terminate);
 }
