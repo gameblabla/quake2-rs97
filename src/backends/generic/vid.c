@@ -77,6 +77,11 @@ typedef struct vidmode_s
 
 /* This must be the same as in videomenu.c! */
 vidmode_t vid_modes[] = {
+#if defined(ARCADE_MINI)
+	{"Mode  0:  480x272", 480, 272, 1},
+#elif defined(PAPK3S)
+	{"Mode  0:  800x480", 800, 480, 1},
+#else
 	{"Mode  0:  320x240", 320, 240, 0},
 	{"Mode  1:  400x300", 400, 300, 1},
 	{"Mode  2:  512x384", 512, 384, 2},
@@ -109,6 +114,7 @@ vidmode_t vid_modes[] = {
 	{"Mode 29: 3840x2160", 3840, 2160, 29},
 	{"Mode 30: 4096x2160", 4096, 2160, 30},
 	{"Mode 31: 5120x2880", 5120, 2880, 31},
+#endif
 };
 
 /* Console variables that we need to access from this module */

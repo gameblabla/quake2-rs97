@@ -207,7 +207,13 @@ static qboolean CreateSDLWindow(int flags, int w, int h)
 
 	return window != NULL;
 #else
-	window = SDL_SetVideoMode(320, 240, 16, SDL_SWSURFACE);
+#if defined(ARCADE_MINI)
+	window = SDL_SetVideoMode(480, 272, 16, SDL_HWSURFACE);
+#elif defined(PAPK3S)
+	window = SDL_SetVideoMode(800, 480, 16, SDL_HWSURFACE);
+#else
+	window = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE);
+#endif
 	SDL_EnableUNICODE(SDL_TRUE);
 	return window != NULL;
 #endif

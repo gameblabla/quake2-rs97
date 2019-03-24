@@ -1,0 +1,171 @@
+#
+# Makefile for Linux
+# It's mostly for conveniance and also so i don't have to recompile SDL2 each time.
+#
+CHAINPREFIX=/opt/rs97-toolchain
+CROSS_COMPILE=$(CHAINPREFIX)/usr/bin/mipsel-linux-
+CC = $(CROSS_COMPILE)gcc
+CXX = $(CROSS_COMPILE)g++
+STRIP = $(CROSS_COMPILE)strip
+SYSROOT     := $(CHAINPREFIX)/usr/mipsel-buildroot-linux-uclibc/sysroot
+SDL_CFLAGS  := $(shell $(SYSROOT)/usr/bin/sdl-config --cflags)
+SDL_LIBS    := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
+
+OUTPUTNAME = quake2.elf
+
+DEFINES = -DSDL -DYQ2OSTYPE=\"Linux\" -DYQ2ARCH=\"mips32\" -DARCADE_MINI
+INCLUDES = -I. -Isrc
+
+OPT_FLAGS  = -O3 -fdata-sections -ffunction-sections -mno-check-zero-division -mno-fp-exceptions -mframe-header-opt -fno-PIC -fno-common -mips32 -fno-PIC -mno-abicalls -mno-interlink-compressed -fsingle-precision-constant
+OPT_FLAGS  += -fno-math-errno -ffinite-math-only -fno-rounding-math -fno-signaling-nans -fcx-limited-range -frename-registers -fno-signed-zeros -fno-trapping-math -flto
+CFLAGS  += $(DEFINES) $(INCLUDES) $(OPT_FLAGS) -std=gnu99
+CFLAGS	+= -fprofile-use
+
+LDFLAGS = -nodefaultlibs -lc -lgcc -lSDL -lm -Wl,--as-needed -Wl,--gc-sections -flto -s -no-pie 
+
+OBJS =  \
+	src/common/shared/flash.o \
+	src/common/shared/rand.o \
+	src/common/shared/shared.o \
+	src/common/unzip/miniz.o \
+	src/common/unzip/unzip.o \
+	src/common/unzip/ioapi.o \
+	src/game/g_ai.o \
+	src/game/g_chase.o \
+	src/game/g_cmds.o \
+	src/game/g_combat.o \
+	src/game/g_func.o \
+	src/game/g_items.o \
+	src/game/g_main.o \
+	src/game/g_misc.o \
+	src/game/g_monster.o \
+	src/game/g_phys.o \
+	src/game/g_spawn.o \
+	src/game/g_svcmds.o \
+	src/game/g_target.o \
+	src/game/g_trigger.o \
+	src/game/g_turret.o \
+	src/game/g_utils.o \
+	src/game/g_weapon.o \
+	src/game/monster/berserker/berserker.o \
+	src/game/monster/boss2/boss2.o \
+	src/game/monster/boss3/boss3.o \
+	src/game/monster/boss3/boss31.o \
+	src/game/monster/boss3/boss32.o \
+	src/game/monster/brain/brain.o \
+	src/game/monster/chick/chick.o \
+	src/game/monster/flipper/flipper.o \
+	src/game/monster/float/float.o \
+	src/game/monster/flyer/flyer.o \
+	src/game/monster/gladiator/gladiator.o \
+	src/game/monster/gunner/gunner.o \
+	src/game/monster/hover/hover.o \
+	src/game/monster/infantry/infantry.o \
+	src/game/monster/insane/insane.o \
+	src/game/monster/medic/medic.o \
+	src/game/monster/misc/move.o \
+	src/game/monster/mutant/mutant.o \
+	src/game/monster/parasite/parasite.o \
+	src/game/monster/soldier/soldier.o \
+	src/game/monster/supertank/supertank.o \
+	src/game/monster/tank/tank.o \
+	src/game/player/client.o \
+	src/game/player/hud.o \
+	src/game/player/trail.o \
+	src/game/player/view.o \
+	src/game/player/weapon.o \
+	src/game/savegame/savegame.o \
+	src/backends/sdl/cd.o \
+	src/backends/sdl/input.o \
+	src/backends/sdl/refresh.o \
+	src/backends/sdl/sound.o \
+	src/client/cl_cin.o \
+	src/client/cl_console.o \
+	src/client/cl_download.o \
+	src/client/cl_effects.o \
+	src/client/cl_entities.o \
+	src/client/cl_input.o \
+	src/client/cl_inventory.o \
+	src/client/cl_keyboard.o \
+	src/client/cl_lights.o \
+	src/client/cl_main.o \
+	src/client/cl_network.o \
+	src/client/cl_parse.o \
+	src/client/cl_particles.o \
+	src/client/cl_prediction.o \
+	src/client/cl_screen.o \
+	src/client/cl_tempentities.o \
+	src/client/cl_view.o \
+	src/client/menu/menu.o \
+	src/client/menu/qmenu.o \
+	src/client/menu/videomenu.o \
+	src/client/sound/ogg.o \
+	src/client/sound/openal.o \
+	src/client/sound/sound.o \
+	src/client/sound/wave.o \
+	src/client/refresh/soft/sw_aclip.o \
+	src/client/refresh/soft/sw_alias.o \
+	src/client/refresh/soft/sw_bsp.o \
+	src/client/refresh/soft/sw_draw.o \
+	src/client/refresh/soft/sw_edge.o \
+	src/client/refresh/soft/sw_image.o \
+	src/client/refresh/soft/sw_light.o \
+	src/client/refresh/soft/sw_misc.o \
+	src/client/refresh/soft/sw_model.o \
+	src/client/refresh/soft/sw_part.o \
+	src/client/refresh/soft/sw_poly.o \
+	src/client/refresh/soft/sw_polyse.o \
+	src/client/refresh/soft/sw_rast.o \
+	src/client/refresh/soft/sw_scan.o \
+	src/client/refresh/soft/sw_sprite.o \
+	src/client/refresh/soft/sw_surf.o \
+	src/client/refresh/files/pcx.o \
+	src/client/refresh/files/pvs.o \
+	src/client/refresh/files/stb.o \
+	src/client/refresh/files/wal.o \
+	src/server/sv_cmd.o \
+	src/server/sv_conless.o \
+	src/server/sv_entities.o \
+	src/server/sv_game.o \
+	src/server/sv_init.o \
+	src/server/sv_main.o \
+	src/server/sv_save.o \
+	src/server/sv_send.o \
+	src/server/sv_user.o \
+	src/server/sv_world.o \
+	src/common/md4.o \
+	src/common/argproc.o \
+	src/common/clientserver.o \
+	src/common/collision.o \
+	src/common/crc.o \
+	src/common/cmdparser.o \
+	src/common/cvar.o \
+	src/common/filesystem.o \
+	src/common/glob.o \
+	src/common/movemsg.o \
+	src/common/netchan.o \
+	src/common/pmove.o \
+	src/common/szone.o \
+	src/common/zone.o 
+	
+OBJS += src/client/refresh/soft/sw_main.o \
+	src/backends/generic_strip/misc.o \
+	src/backends/generic_strip/vid.o \
+	src/common/frame.o \
+	src/backends/unix/main.o \
+	src/backends/unix/network.o \
+	src/backends/unix/signalhandler.o \
+	src/backends/unix/system.o \
+	src/backends/unix/shared/hunk.o
+  
+.c.o:
+	$(CC) $(CFLAGS) -c -o $@ $< 
+	
+
+all: executable
+
+executable : $(OBJS)
+	$(CC) -o $(OUTPUTNAME) $(OBJS) $(CFLAGS) $(LDFLAGS)
+
+clean:
+	rm $(OBJS) $(OUTPUTNAME)
